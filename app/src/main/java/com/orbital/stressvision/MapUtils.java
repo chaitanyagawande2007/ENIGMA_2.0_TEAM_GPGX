@@ -5,6 +5,11 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Polygon;
 import com.google.android.gms.maps.model.PolygonOptions;
 
+import android.content.Context;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import java.io.InputStream;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -184,5 +189,49 @@ public class MapUtils {
             }
         }
         return null;
+    }
+
+    public static List<Polygon> drawFromGeoJson(GoogleMap map, Context context) {
+
+        List<Polygon> polygons = new ArrayList<>();
+
+        try {
+            InputStream is = context.getAssets().open("ndvi_zones.geojson");
+            byte[] buffer = new byte[is.available()];
+            is.read(buffer);
+            is.close();
+
+            String json = new String(buffer);
+            JSONObject obj = new JSONObject(json);
+            JSONArray features = obj.getJSONArray("features");
+
+            for(int i=0;i<features.length();i++){
+
+                JSONArray coords = features.getJSONObject(i)
+                        .getJSONObject("geometry")
+                        .getJSONArray("coordinates")
+                        .getJSONArray(0);
+
+                PolygonOptions options = new PolygonOptions();
+
+                for(int j=0;j<coords.length();j++){
+                    JSONArray point = coords.getJSONArray(j);
+                    options.add(new LatLng(point.getDouble(1), point.getDouble(0)));
+                }
+
+                // Temporary green color (next step me dynamic karenge)
+                options.fillColor(0x5534C55E);
+                options.strokeColor(0xFF15803D);
+                options.strokeWidth(3f);
+                options.clickable(true);
+
+                polygons.add(map.addPolygon(options));
+            }
+
+        } catch (Exception e){
+            e.printStackTrace();
+        }
+
+        return polygons;
     }
 }

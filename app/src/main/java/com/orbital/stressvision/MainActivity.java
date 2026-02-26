@@ -16,10 +16,13 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Polygon;
+import com.google.android.gms.maps.model.TileOverlayOptions;
+import com.google.android.gms.maps.model.UrlTileProvider;
 import com.google.android.material.snackbar.Snackbar;
 
 import com.orbital.stressvision.databinding.ActivityMainBinding;
 
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -41,6 +44,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     // ViewBinding reference
     private ActivityMainBinding binding;
 
+    private com.google.android.gms.maps.model.Circle currentCircle;
+
     // Google Map reference
     private GoogleMap googleMap;
 
@@ -61,6 +66,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+
         // Inflate layout using ViewBinding
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
@@ -71,8 +77,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             getSupportActionBar().setTitle("Orbital Agronomy – Stress Vision");
         }
 
-        // Load sample zone data
-        stressZones = MapUtils.getSampleZones();
+
 
         // Initialize map fragment
         SupportMapFragment mapFragment = (SupportMapFragment)
@@ -82,7 +87,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
 
         // Set up FAB click listener
-        binding.fabStressVision.setOnClickListener(v -> toggleStressVision());
+        binding.fabStressVision.setVisibility(View.GONE);
 
         // Legend is hidden by default
         binding.legendCard.setVisibility(View.GONE);
@@ -97,25 +102,131 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     @Override
     public void onMapReady(GoogleMap map) {
+
         this.googleMap = map;
 
-        // Set satellite map type for real-world crop field view
         googleMap.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
-
-        // Move camera to farm area
         googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(FARM_CENTER, DEFAULT_ZOOM));
 
-        // Disable some UI controls for cleaner look
         googleMap.getUiSettings().setMapToolbarEnabled(false);
         googleMap.getUiSettings().setMyLocationButtonEnabled(false);
 
-        // Set polygon click listener
-        googleMap.setOnPolygonClickListener(polygon -> {
-            String zoneId = (String) polygon.getTag();
-            if (zoneId != null) {
-                openZoneDetail(zoneId);
-            }
+        // 🔥 REAL CLICK ANYWHERE NDVI
+        googleMap.setOnMapClickListener(latLng -> {
+
+            Snackbar.make(binding.getRoot(),
+                    "Fetching satellite NDVI...",
+                    Snackbar.LENGTH_SHORT).show();
+
+            fetchNdviFromServer(latLng.latitude, latLng.longitude);
         });
+    }
+
+    private void fetchNdviFromServer(double lat, double lng) {
+
+        new Thread(() -> {
+
+            try {
+
+                String urlString =
+                        "https://spencer-unmutualised-biweekly.ngrok-free.dev/ndvi?lat="
+                                + lat + "&lng=" + lng;
+
+                okhttp3.OkHttpClient client = new okhttp3.OkHttpClient();
+
+                okhttp3.Request request = new okhttp3.Request.Builder()
+                        .url(urlString)
+                        .build();
+
+                okhttp3.Response response = client.newCall(request).execute();
+
+                if (!response.isSuccessful()) {
+                    throw new Exception("Server error");
+                }
+
+                String body = response.body().string();
+
+                org.json.JSONObject json = new org.json.JSONObject(body);
+
+                String status = json.getString("status");
+
+                if (!status.equals("ok")) {
+                    throw new Exception("No satellite data");
+                }
+
+                double ndvi = json.getDouble("ndvi");
+
+                runOnUiThread(() -> {
+                    showNdviPopup(ndvi);
+                    drawStressCircle(lat, lng, ndvi);
+                });
+
+            } catch (Exception e) {
+
+                runOnUiThread(() ->
+                        Snackbar.make(binding.getRoot(),
+                                "Satellite data unavailable",
+                                Snackbar.LENGTH_LONG).show()
+                );
+            }
+
+        }).start();
+    }
+
+    private void drawStressCircle(double lat, double lng, double ndvi) {
+
+        if (currentCircle != null) {
+            currentCircle.remove();
+        }
+
+        int color;
+
+        if (ndvi < 0.3) {
+            color = android.graphics.Color.argb(140, 239, 68, 68);
+        } else if (ndvi < 0.5) {
+            color = android.graphics.Color.argb(140, 250, 204, 21);
+        } else {
+            color = android.graphics.Color.argb(140, 34, 197, 94);
+        }
+
+        currentCircle = googleMap.addCircle(
+                new com.google.android.gms.maps.model.CircleOptions()
+                        .center(new LatLng(lat, lng))
+                        .radius(70)
+                        .fillColor(color)
+                        .strokeColor(color)
+                        .strokeWidth(3f)
+        );
+    }
+
+    private void showNdviPopup(double ndvi){
+
+        String label;
+        String desc;
+        int color;
+
+        if(ndvi < 0.3){
+            label = "Low Vegetation";
+            desc = "Possible water stress detected";
+            color = android.graphics.Color.rgb(239,68,68);
+        }else if(ndvi < 0.5){
+            label = "Moderate Vegetation";
+            desc = "Crop health should be monitored";
+            color = android.graphics.Color.rgb(250,204,21);
+        }else{
+            label = "Healthy Vegetation";
+            desc = "Vegetation density is strong";
+            color = android.graphics.Color.rgb(34,197,94);
+        }
+
+        Snackbar.make(binding.getRoot(),
+                        "NDVI: " + String.format("%.2f", ndvi)
+                                + "\n" + label
+                                + "\n" + desc,
+                        Snackbar.LENGTH_LONG)
+                .setBackgroundTint(color)
+                .setTextColor(android.graphics.Color.WHITE)
+                .show();
     }
 
     // ─────────────────────────────────────────────────────────
@@ -145,29 +256,26 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     private void enableStressVision() {
-        // Draw polygons on map
+
+        // NDVI based zones draw होंगे (real colours)
         stressPolygons = MapUtils.drawStressOverlay(googleMap, stressZones);
 
-        // Animate legend card appearance
         showLegendCard();
 
-        // Update FAB appearance
         binding.fabStressVision.setIcon(
                 androidx.core.content.ContextCompat.getDrawable(this, R.drawable.ic_eye_off)
         );
         binding.fabStressVision.setContentDescription("Disable Stress Vision");
 
-        // Show snackbar confirmation
         Snackbar.make(
-            binding.getRoot(),
-            "\u26A1 Stress-Vision ACTIVE — " + stressZones.size() + " zones analysed",
-            Snackbar.LENGTH_LONG
-        )
-        .setBackgroundTint(getColor(R.color.snackbar_success))
-        .setTextColor(getColor(android.R.color.white))
-        .show();
+                        binding.getRoot(),
+                        "⚡ Stress-Vision ACTIVE — NDVI zones loaded",
+                        Snackbar.LENGTH_LONG
+                )
+                .setBackgroundTint(getColor(R.color.snackbar_success))
+                .setTextColor(getColor(android.R.color.white))
+                .show();
     }
-
     private void disableStressVision() {
         // Remove all polygons
         MapUtils.clearStressOverlay(stressPolygons);
