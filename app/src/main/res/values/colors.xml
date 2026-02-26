@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- ── Primary App Colors ─────────────────────────────── -->
+    <color name="green_primary">#16A34A</color>       <!-- Main green -->
+    <color name="green_dark">#15803D</color>           <!-- Dark green -->
+    <color name="green_accent">#4ADE80</color>         <!-- Bright accent green -->
+    <color name="green_light">#86EFAC</color>          <!-- Light green -->
+
+    <!-- ── Background Colors ──────────────────────────────── -->
+    <color name="bg_dark">#070D0A</color>              <!-- App background -->
+    <color name="surface">#0D1A12</color>              <!-- Surface -->
+    <color name="surface2">#122018</color>             <!-- Elevated surface -->
+    <color name="toolbar_bg">#0A1510</color>           <!-- Toolbar background -->
+    <color name="card_bg">#0F1E15</color>              <!-- Card background -->
+    <color name="splash_bg">#050B07</color>            <!-- Splash background -->
+
+    <!-- ── Stress Level Colors ────────────────────────────── -->
+    <!-- Healthy -->
+    <color name="stress_healthy_fill">#7822C55E</color>      <!-- Semi-transparent green -->
+    <color name="stress_healthy_stroke">#DC15803D</color>    <!-- Dark green border -->
+
+    <!-- Moderate Stress -->
+    <color name="stress_moderate_fill">#78FACC15</color>     <!-- Semi-transparent yellow -->
+    <color name="stress_moderate_stroke">#DCA16207</color>   <!-- Amber border -->
+
+    <!-- Severe Stress -->
+    <color name="stress_severe_fill">#8CEF4444</color>       <!-- Semi-transparent red -->
+    <color name="stress_severe_stroke">#DC991B1B</color>     <!-- Dark red border -->
+
+    <!-- ── UI Colors ─────────────────────────────────────── -->
+    <color name="text_primary">#D1FAE5</color>         <!-- Main text color -->
+    <color name="text_muted">#6B7C72</color>           <!-- Secondary text -->
+    <color name="border_color">#1E3828</color>         <!-- Card/divider borders -->
+    <color name="orange_warning">#F97316</color>       <!-- Temperature / warning color -->
+    <color name="purple_nutrient">#A855F7</color>      <!-- Nutrient deficiency -->
+    <color name="red_severe">#EF4444</color>           <!-- Severe stress red -->
+
+    <!-- ── Snackbar Colors ────────────────────────────────── -->
+    <color name="snackbar_success">#166534</color>     <!-- Success message -->
+    <color name="snackbar_neutral">#1E3828</color>     <!-- Neutral message -->
+
+    <!-- ── Legend dot colors ──────────────────────────────── -->
+    <color name="legend_green">#22C55E</color>
+    <color name="legend_yellow">#EAB308</color>
+    <color name="legend_red">#EF4444</color>
+
+    <!-- Required default colors -->
+    <color name="purple_200">#FFBB86FC</color>
+    <color name="purple_500">#FF6200EE</color>
+    <color name="purple_700">#FF3700B3</color>
+    <color name="teal_200">#FF03DAC5</color>
+    <color name="teal_700">#FF018786</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+
+</resources>

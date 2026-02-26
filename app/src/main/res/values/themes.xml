@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- ── Main app theme ─────────────────────────────────── -->
+    <style name="Theme.StressVision" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/green_primary</item>
+        <item name="colorPrimaryDark">@color/green_dark</item>
+        <item name="colorAccent">@color/green_accent</item>
+        <item name="android:windowBackground">@color/bg_dark</item>
+        <item name="android:statusBarColor">@color/bg_dark</item>
+        <item name="android:navigationBarColor">@color/bg_dark</item>
+    </style>
+
+    <!-- ── Splash screen theme (fullscreen) ──────────────── -->
+    <style name="Theme.StressVision.Splash" parent="Theme.StressVision">
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowBackground">@color/splash_bg</item>
+    </style>
+
+    <!-- ── Dialog theme for ZoneDetailActivity ───────────── -->
+    <style name="Theme.StressVision.Dialog" parent="Theme.StressVision">
+        <item name="android:windowBackground">@color/bg_dark</item>
+    </style>
+
+    <!-- ── Popup menu overlay ─────────────────────────────── -->
+    <style name="Theme.StressVision.PopupOverlay" parent="ThemeOverlay.AppCompat.Dark" />
+
+    <!-- ── FAB style ─────────────────────────────────────── -->
+    <style name="Widget.StressVision.FAB" parent="Widget.MaterialComponents.ExtendedFloatingActionButton">
+        <item name="backgroundTint">@color/green_accent</item>
+        <item name="android:textColor">@color/bg_dark</item>
+        <item name="iconTint">@color/bg_dark</item>
+        <item name="cornerRadius">28dp</item>
+    </style>
+
+    <!-- ── Card style ────────────────────────────────────── -->
+    <style name="Widget.StressVision.Card" parent="Widget.MaterialComponents.CardView">
+        <item name="cardBackgroundColor">@color/card_bg</item>
+        <item name="cardCornerRadius">12dp</item>
+        <item name="cardElevation">4dp</item>
+        <item name="strokeColor">@color/border_color</item>
+        <item name="strokeWidth">1dp</item>
+    </style>
+
+</resources>

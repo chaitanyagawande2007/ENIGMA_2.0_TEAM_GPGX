@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">StressVision</string>
+    <string name="app_full_title">Orbital Agronomy – Stress Vision</string>
+    <string name="fab_enable">Enable Stress Vision</string>
+    <string name="fab_disable">Disable Stress Vision</string>
+    <string name="prototype_note">Prototype rule-based stress detection model.</string>
+    <string name="legend_title">STRESS CLASSIFICATION</string>
+    <string name="legend_healthy">Healthy</string>
+    <string name="legend_moderate">Moderate Stress</string>
+    <string name="legend_severe">Severe Stress</string>
+    <string name="tap_hint">Tap a zone for details</string>
+    <string name="menu_info">About</string>
+    <string name="menu_reset">Reset View</string>
+</resources>

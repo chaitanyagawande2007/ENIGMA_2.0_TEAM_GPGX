@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Launcher icon foreground — satellite symbol -->
+<!-- Fixed: replaced unsupported rect tags with path equivalents -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Satellite body (hexagon) -->
+    <path
+        android:fillColor="#4ADE80"
+        android:pathData="M54,38 L66,46 L66,62 L54,70 L42,62 L42,46 Z" />
+
+    <!-- Solar panel LEFT as path rectangle (left=20 top=50 right=40 bottom=58) -->
+    <path
+        android:fillColor="#22C55E"
+        android:pathData="M20,50 L40,50 L40,58 L20,58 Z" />
+
+    <!-- Solar panel RIGHT as path rectangle (left=68 top=50 right=88 bottom=58) -->
+    <path
+        android:fillColor="#22C55E"
+        android:pathData="M68,50 L88,50 L88,58 L68,58 Z" />
+
+    <!-- Antenna -->
+    <path
+        android:strokeColor="#86EFAC"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:fillColor="@android:color/transparent"
+        android:pathData="M54,38 L54,28 L60,22" />
+
+    <!-- Orbit arc -->
+    <path
+        android:strokeColor="#16A34A"
+        android:strokeWidth="2"
+        android:fillColor="@android:color/transparent"
+        android:pathData="M25,54 A29,29 0 0 1 83,54" />
+
+</vector>
