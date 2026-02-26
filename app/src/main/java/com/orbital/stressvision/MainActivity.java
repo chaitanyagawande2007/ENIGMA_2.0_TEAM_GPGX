@@ -1,276 +1,282 @@
 package com.orbital.stressvision;
 
+import android.Manifest;
+import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.location.Address;
+import android.location.Geocoder;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
 import android.view.animation.AlphaAnimation;
 import android.view.animation.Animation;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 
-import com.google.android.gms.maps.CameraUpdateFactory;
-import com.google.android.gms.maps.GoogleMap;
-import com.google.android.gms.maps.OnMapReadyCallback;
-import com.google.android.gms.maps.SupportMapFragment;
-import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.Polygon;
+import com.google.android.gms.location.*;
+import com.google.android.gms.maps.*;
+import com.google.android.gms.maps.model.*;
 import com.google.android.material.snackbar.Snackbar;
-
 import com.orbital.stressvision.databinding.ActivityMainBinding;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
-/**
- * MainActivity.java
- * ─────────────────────────────────────────────────────────────
- * Main screen of Stress-Vision app.
- *
- * Features:
- *  • Full-screen Google Maps in Satellite mode
- *  • FAB to toggle Stress-Vision overlay on/off
- *  • Bottom legend card showing color classification
- *  • Polygon click → opens ZoneDetailActivity with info popup
- *  • AppBar with menu for info and settings
- * ─────────────────────────────────────────────────────────────
- */
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
 
-    // ViewBinding reference
     private ActivityMainBinding binding;
-
-    // Google Map reference
     private GoogleMap googleMap;
 
-    // Stress overlay state
     private boolean isStressVisionActive = false;
 
-    // Drawn polygon references (kept for removal)
     private List<Polygon> stressPolygons = new ArrayList<>();
+    private List<StressZone> stressZones = new ArrayList<>();
 
-    // Sample zone data (simulated)
-    private List<StressZone> stressZones;
+    private FusedLocationProviderClient fusedLocationClient;
+    private static final int LOCATION_PERMISSION_REQUEST = 1001;
 
-    // Default camera position — farmland near Nagpur, India
-    private static final LatLng FARM_CENTER = new LatLng(21.1455, 79.0892);
-    private static final float  DEFAULT_ZOOM = 14.0f;
-
+    // --------------------------------------------------
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Inflate layout using ViewBinding
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        // Set up AppBar
         setSupportActionBar(binding.toolbar);
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setTitle("Orbital Agronomy – Stress Vision");
-        }
 
-        // Load sample zone data
-        stressZones = MapUtils.getSampleZones();
+        fusedLocationClient =
+                LocationServices.getFusedLocationProviderClient(this);
 
-        // Initialize map fragment
-        SupportMapFragment mapFragment = (SupportMapFragment)
-            getSupportFragmentManager().findFragmentById(R.id.map_fragment);
-        if (mapFragment != null) {
-            mapFragment.getMapAsync(this);
-        }
+        SupportMapFragment mapFragment =
+                (SupportMapFragment)getSupportFragmentManager()
+                        .findFragmentById(R.id.map_fragment);
 
-        // Set up FAB click listener
+        if(mapFragment!=null) mapFragment.getMapAsync(this);
+
+        binding.legendCard.setVisibility(android.view.View.GONE);
+
         binding.fabStressVision.setOnClickListener(v -> toggleStressVision());
+        binding.btnMyLocation.setOnClickListener(v -> goToMyLocation());
 
-        // Legend is hidden by default
-        binding.legendCard.setVisibility(View.GONE);
-
-        // Prototype label
-        binding.prototypeLabel.setText("Prototype rule-based stress detection model.");
+        setupSearch();
     }
 
-    // ─────────────────────────────────────────────────────────
-    // Google Maps callback
-    // ─────────────────────────────────────────────────────────
-
+    // --------------------------------------------------
     @Override
     public void onMapReady(GoogleMap map) {
-        this.googleMap = map;
 
-        // Set satellite map type for real-world crop field view
-        googleMap.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
+        googleMap = map;
+        googleMap.setMapType(GoogleMap.MAP_TYPE_HYBRID);
 
-        // Move camera to farm area
-        googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(FARM_CENTER, DEFAULT_ZOOM));
-
-        // Disable some UI controls for cleaner look
         googleMap.getUiSettings().setMapToolbarEnabled(false);
         googleMap.getUiSettings().setMyLocationButtonEnabled(false);
 
-        // Set polygon click listener
+        goToMyLocation();
+
+        // TAP MAP → CREATE ANALYSIS GRID
+        googleMap.setOnMapClickListener(latLng -> {
+            if(isStressVisionActive)
+                refreshStressLayerAt(latLng);
+        });
+
+        // ✅ CITY / ZONE CLICK → ZOOM + OPEN DETAIL
         googleMap.setOnPolygonClickListener(polygon -> {
+
+            zoomToPolygon(polygon);   // NEW LOGIC
+
             String zoneId = (String) polygon.getTag();
-            if (zoneId != null) {
+            if(zoneId!=null)
                 openZoneDetail(zoneId);
-            }
         });
     }
 
-    // ─────────────────────────────────────────────────────────
-    // Stress Vision Toggle
-    // ─────────────────────────────────────────────────────────
+    // --------------------------------------------------
+    // ZOOM TO CLICKED CITY / POLYGON
+    // --------------------------------------------------
+    private void zoomToPolygon(Polygon polygon){
 
-    /**
-     * Toggles the Stress-Vision overlay on/off.
-     * First click: shows colored stress polygons + legend.
-     * Second click: removes overlays.
-     */
-    private void toggleStressVision() {
-        if (googleMap == null) {
-            Snackbar.make(binding.getRoot(), "Map is still loading...", Snackbar.LENGTH_SHORT).show();
+        if(googleMap==null || polygon==null) return;
+
+        LatLngBounds.Builder builder = new LatLngBounds.Builder();
+
+        for(LatLng point : polygon.getPoints()){
+            builder.include(point);
+        }
+
+        LatLngBounds bounds = builder.build();
+
+        googleMap.animateCamera(
+                CameraUpdateFactory.newLatLngBounds(bounds,150)
+        );
+    }
+
+    // --------------------------------------------------
+    private void refreshStressLayerAt(LatLng center){
+
+        if(googleMap==null) return;
+
+        MapUtils.clearStressOverlay(stressPolygons);
+
+        stressZones =
+                MapUtils.generateZonesAroundPoint(center);
+
+        stressPolygons =
+                MapUtils.drawStressOverlay(googleMap, stressZones);
+    }
+
+    // --------------------------------------------------
+    private void toggleStressVision(){
+
+        isStressVisionActive=!isStressVisionActive;
+
+        if(isStressVisionActive){
+
+            binding.fabStressVision.setIcon(getDrawable(R.drawable.ic_eye_off));
+            showLegendCard();
+
+            Snackbar.make(binding.getRoot(),
+                    "Tap anywhere to analyse stress",
+                    Snackbar.LENGTH_SHORT).show();
+
+        }else{
+
+            MapUtils.clearStressOverlay(stressPolygons);
+            hideLegendCard();
+
+            binding.fabStressVision.setIcon(getDrawable(R.drawable.ic_eye));
+        }
+    }
+
+    // --------------------------------------------------
+    private void setupSearch(){
+        binding.searchInput.setOnEditorActionListener((v,actionId,event)->{
+            if(actionId== EditorInfo.IME_ACTION_SEARCH){
+                searchLocation(binding.searchInput.getText().toString());
+                return true;
+            }
+            return false;
+        });
+    }
+
+    // ✅ SEARCH CITY → AUTO ZOOM
+    private void searchLocation(String name){
+
+        if(googleMap==null) return;
+
+        try{
+            Geocoder geocoder=new Geocoder(this, Locale.getDefault());
+            List<Address> list=geocoder.getFromLocationName(name,1);
+
+            if(list==null||list.isEmpty()) return;
+
+            LatLng latLng=new LatLng(
+                    list.get(0).getLatitude(),
+                    list.get(0).getLongitude());
+
+            googleMap.animateCamera(
+                    CameraUpdateFactory.newLatLngZoom(latLng,14f),
+                    900,
+                    new GoogleMap.CancelableCallback(){
+                        public void onFinish(){
+                            if(isStressVisionActive)
+                                refreshStressLayerAt(latLng);
+                        }
+                        public void onCancel(){}
+                    });
+
+            hideKeyboard();
+
+        }catch(IOException ignored){}
+    }
+
+    // --------------------------------------------------
+    private void goToMyLocation(){
+
+        if(ActivityCompat.checkSelfPermission(this,
+                Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED){
+
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                    LOCATION_PERMISSION_REQUEST);
             return;
         }
 
-        isStressVisionActive = !isStressVisionActive;
+        googleMap.setMyLocationEnabled(true);
 
-        if (isStressVisionActive) {
-            // ── ENABLE STRESS VISION ────────────────────────
-            enableStressVision();
-        } else {
-            // ── DISABLE STRESS VISION ───────────────────────
-            disableStressVision();
-        }
+        fusedLocationClient.getLastLocation()
+                .addOnSuccessListener(location->{
+                    if(location==null) return;
+
+                    LatLng user=new LatLng(
+                            location.getLatitude(),
+                            location.getLongitude());
+
+                    googleMap.animateCamera(
+                            CameraUpdateFactory.newLatLngZoom(user,15f));
+                });
     }
 
-    private void enableStressVision() {
-        // Draw polygons on map
-        stressPolygons = MapUtils.drawStressOverlay(googleMap, stressZones);
+    // --------------------------------------------------
+    private void openZoneDetail(String zoneId){
 
-        // Animate legend card appearance
-        showLegendCard();
+        StressZone zone=MapUtils.findZoneById(stressZones,zoneId);
+        if(zone==null) return;
 
-        // Update FAB appearance
-        binding.fabStressVision.setIcon(
-                androidx.core.content.ContextCompat.getDrawable(this, R.drawable.ic_eye_off)
-        );
-        binding.fabStressVision.setContentDescription("Disable Stress Vision");
+        StressResult result=
+                StressCalculator.classify(zone.getNdvi(),zone.getTemperature());
 
-        // Show snackbar confirmation
-        Snackbar.make(
-            binding.getRoot(),
-            "\u26A1 Stress-Vision ACTIVE — " + stressZones.size() + " zones analysed",
-            Snackbar.LENGTH_LONG
-        )
-        .setBackgroundTint(getColor(R.color.snackbar_success))
-        .setTextColor(getColor(android.R.color.white))
-        .show();
+        Intent i=new Intent(this,ZoneDetailActivity.class);
+        i.putExtra(ZoneDetailActivity.EXTRA_ZONE_NAME,zone.getName());
+        i.putExtra(ZoneDetailActivity.EXTRA_NDVI,zone.getNdvi());
+        i.putExtra(ZoneDetailActivity.EXTRA_TEMPERATURE,zone.getTemperature());
+        i.putExtra(ZoneDetailActivity.EXTRA_STRESS_LABEL,result.getLabel());
+        startActivity(i);
     }
 
-    private void disableStressVision() {
-        // Remove all polygons
-        MapUtils.clearStressOverlay(stressPolygons);
-
-        // Hide legend card
-        hideLegendCard();
-
-        // Restore FAB icon
-        binding.fabStressVision.setIcon(
-                androidx.core.content.ContextCompat.getDrawable(this, R.drawable.ic_eye)
-        );
-        binding.fabStressVision.setContentDescription("Enable Stress Vision");
-
-        // Show snackbar
-        Snackbar.make(
-            binding.getRoot(),
-            "\uD83C\uDF0D Stress-Vision OFF — standard satellite view",
-            Snackbar.LENGTH_SHORT
-        )
-        .setBackgroundTint(getColor(R.color.snackbar_neutral))
-        .show();
+    // --------------------------------------------------
+    private void showLegendCard(){
+        binding.legendCard.setVisibility(android.view.View.VISIBLE);
+        AlphaAnimation a=new AlphaAnimation(0f,1f);
+        a.setDuration(400);
+        binding.legendCard.startAnimation(a);
     }
 
-    // ─────────────────────────────────────────────────────────
-    // Legend Card Animations
-    // ─────────────────────────────────────────────────────────
-
-    private void showLegendCard() {
-        binding.legendCard.setVisibility(View.VISIBLE);
-
-        AlphaAnimation fadeIn = new AlphaAnimation(0f, 1f);
-        fadeIn.setDuration(500);
-        fadeIn.setFillAfter(true);
-        binding.legendCard.startAnimation(fadeIn);
-    }
-
-    private void hideLegendCard() {
-        AlphaAnimation fadeOut = new AlphaAnimation(1f, 0f);
-        fadeOut.setDuration(300);
-        fadeOut.setFillAfter(false);
-        fadeOut.setAnimationListener(new Animation.AnimationListener() {
-            @Override public void onAnimationStart(Animation a) {}
-            @Override public void onAnimationRepeat(Animation a) {}
-            @Override public void onAnimationEnd(Animation a) {
-                binding.legendCard.setVisibility(View.GONE);
+    private void hideLegendCard(){
+        AlphaAnimation a=new AlphaAnimation(1f,0f);
+        a.setDuration(300);
+        a.setAnimationListener(new Animation.AnimationListener(){
+            public void onAnimationStart(Animation animation){}
+            public void onAnimationRepeat(Animation animation){}
+            public void onAnimationEnd(Animation animation){
+                binding.legendCard.setVisibility(android.view.View.GONE);
             }
         });
-        binding.legendCard.startAnimation(fadeOut);
+        binding.legendCard.startAnimation(a);
     }
 
-    // ─────────────────────────────────────────────────────────
-    // Zone Detail
-    // ─────────────────────────────────────────────────────────
-
-    /**
-     * Opens ZoneDetailActivity with full info about the clicked zone.
-     *
-     * @param zoneId ID of the tapped polygon zone
-     */
-    private void openZoneDetail(String zoneId) {
-        StressZone zone = MapUtils.findZoneById(stressZones, zoneId);
-        if (zone == null) return;
-
-        StressResult result = StressCalculator.classify(zone.getNdvi(), zone.getTemperature());
-
-        Intent intent = new Intent(this, ZoneDetailActivity.class);
-        intent.putExtra(ZoneDetailActivity.EXTRA_ZONE_NAME,   zone.getName());
-        intent.putExtra(ZoneDetailActivity.EXTRA_NDVI,        zone.getNdvi());
-        intent.putExtra(ZoneDetailActivity.EXTRA_TEMPERATURE, zone.getTemperature());
-        intent.putExtra(ZoneDetailActivity.EXTRA_STRESS_LABEL, result.getLabel());
-        intent.putExtra(ZoneDetailActivity.EXTRA_STRESS_DESC,  result.getDescription());
-        intent.putExtra(ZoneDetailActivity.EXTRA_STRESS_EMOJI, result.getEmoji());
-        startActivity(intent);
-        overridePendingTransition(android.R.anim.slide_in_left, android.R.anim.fade_out);
+    private void hideKeyboard(){
+        InputMethodManager imm=
+                (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+        if(imm!=null && getCurrentFocus()!=null)
+            imm.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(),0);
     }
 
-    // ─────────────────────────────────────────────────────────
-    // Menu
-    // ─────────────────────────────────────────────────────────
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.main_menu, menu);
+    public boolean onCreateOptionsMenu(Menu menu){
+        getMenuInflater().inflate(R.menu.main_menu,menu);
         return true;
     }
 
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getItemId() == R.id.menu_info) {
-            Snackbar.make(
-                binding.getRoot(),
-                "Prototype rule-based stress detection. No AI used.",
-                Snackbar.LENGTH_LONG
-            ).show();
-            return true;
-        }
-        if (item.getItemId() == R.id.menu_reset) {
-            if (isStressVisionActive) {
-                toggleStressVision();
-            }
-            googleMap.animateCamera(
-                CameraUpdateFactory.newLatLngZoom(FARM_CENTER, DEFAULT_ZOOM)
-            );
+    public boolean onOptionsItemSelected(MenuItem item){
+        if(item.getItemId()==R.id.menu_reset){
+            MapUtils.clearStressOverlay(stressPolygons);
             return true;
         }
         return super.onOptionsItemSelected(item);
