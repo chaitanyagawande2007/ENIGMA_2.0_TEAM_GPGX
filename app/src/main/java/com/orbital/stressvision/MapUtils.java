@@ -4,10 +4,10 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Polygon;
 import com.google.android.gms.maps.model.PolygonOptions;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Random;
 
 /**
  * MapUtils.java
@@ -184,5 +184,40 @@ public class MapUtils {
             }
         }
         return null;
+    }
+    /**
+     * Creates a new StressZone around a user-tapped location.
+     * Generates a small square polygon around the tapped LatLng.
+     * Assigns random simulated NDVI + Temperature for demo.
+     */
+    public static StressZone createUserZone(LatLng center, int zoneNumber) {
+
+        // Size of the created zone (in degrees ~100 meters)
+        double offset = 0.0008;
+
+        // Create a square polygon around the tapped point
+        List<LatLng> polygon = Arrays.asList(
+                new LatLng(center.latitude + offset, center.longitude - offset), // top-left
+                new LatLng(center.latitude + offset, center.longitude + offset), // top-right
+                new LatLng(center.latitude - offset, center.longitude + offset), // bottom-right
+                new LatLng(center.latitude - offset, center.longitude - offset)  // bottom-left
+        );
+
+        // Simulate random NDVI and Temperature for the selected area
+        double[] ndviOptions    = {0.25, 0.35, 0.45, 0.55, 0.65, 0.75};
+        double[] tempOptions    = {26.0, 29.0, 32.0, 35.0, 37.0, 40.0};
+
+        Random random = new Random();
+        double ndvi   = ndviOptions[random.nextInt(ndviOptions.length)];
+        double temp   = tempOptions[random.nextInt(tempOptions.length)];
+
+        return new StressZone(
+                "USER_ZONE_" + zoneNumber,
+                "Custom Field #" + zoneNumber,
+                polygon,
+                ndvi,
+                temp,
+                center
+        );
     }
 }

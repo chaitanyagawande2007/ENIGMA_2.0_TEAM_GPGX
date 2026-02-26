@@ -7,9 +7,22 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.animation.AlphaAnimation;
 import android.view.animation.Animation;
-
 import androidx.appcompat.app.AppCompatActivity;
-
+import android.location.Address;
+import android.location.Geocoder;
+import android.view.KeyEvent;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
+import android.content.Context;
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.location.Location;
+import androidx.core.app.ActivityCompat;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
+import java.io.IOException;
+import java.util.List;
+import java.util.Locale;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -38,6 +51,9 @@ import java.util.List;
  */
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
 
+    // Location client for GPS
+    private FusedLocationProviderClient fusedLocationClient;
+    private static final int LOCATION_PERMISSION_REQUEST = 1001;
     // ViewBinding reference
     private ActivityMainBinding binding;
 
@@ -60,6 +76,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
 
         // Inflate layout using ViewBinding
         binding = ActivityMainBinding.inflate(getLayoutInflater());
@@ -89,7 +106,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         // Prototype label
         binding.prototypeLabel.setText("Prototype rule-based stress detection model.");
-    }
+
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+        setupSearch();
+        binding.btnMyLocation.setOnClickListener(v -> goToMyLocation());
+           }
 
     // ─────────────────────────────────────────────────────────
     // Google Maps callback
@@ -100,10 +121,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         this.googleMap = map;
 
         // Set satellite map type for real-world crop field view
-        googleMap.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
+        googleMap.setMapType(GoogleMap.MAP_TYPE_HYBRID);
 
         // Move camera to farm area
-        googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(FARM_CENTER, DEFAULT_ZOOM));
+        // Go to user's location on startup instead of Nagpur
+        goToMyLocation();
 
         // Disable some UI controls for cleaner look
         googleMap.getUiSettings().setMapToolbarEnabled(false);
@@ -259,7 +281,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         if (item.getItemId() == R.id.menu_info) {
             Snackbar.make(
                 binding.getRoot(),
-                "Prototype rule-based stress detection. No AI used.",
+                "Prototype rule-based stress detection.",
                 Snackbar.LENGTH_LONG
             ).show();
             return true;
@@ -275,4 +297,154 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
         return super.onOptionsItemSelected(item);
     }
+
+    // ─────────────────────────────────────────────────────────
+// Search Location
+// ─────────────────────────────────────────────────────────
+
+    private void setupSearch() {
+
+        // Show/hide clear button as user types
+        binding.searchInput.addTextChangedListener(new android.text.TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                binding.searchClear.setVisibility(
+                        s.length() > 0 ? View.VISIBLE : View.GONE
+                );
+            }
+            @Override public void afterTextChanged(android.text.Editable s) {}
+        });
+
+        // Clear button click
+        binding.searchClear.setOnClickListener(v -> {
+            binding.searchInput.setText("");
+            binding.searchClear.setVisibility(View.GONE);
+        });
+
+        // When user presses Search on keyboard
+        binding.searchInput.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_SEARCH) {
+                String query = binding.searchInput.getText().toString().trim();
+                if (!query.isEmpty()) {
+                    searchLocation(query);
+                }
+                return true;
+            }
+            return false;
+        });
+    }
+
+    /**
+     * Searches for a location by name using Geocoder
+     * and moves the map camera there.
+     */
+    private void searchLocation(String locationName) {
+        Geocoder geocoder = new Geocoder(this, Locale.getDefault());
+
+        try {
+            List<Address> addresses = geocoder.getFromLocationName(locationName, 1);
+
+            if (addresses != null && !addresses.isEmpty()) {
+                Address address = addresses.get(0);
+                LatLng latLng = new LatLng(address.getLatitude(), address.getLongitude());
+
+                // Move camera to searched location
+                googleMap.animateCamera(
+                        CameraUpdateFactory.newLatLngZoom(latLng, 14.0f)
+                );
+
+                // Hide keyboard
+                hideKeyboard();
+
+                // Show confirmation
+                Snackbar.make(
+                        binding.getRoot(),
+                        "📍 Moved to: " + address.getAddressLine(0),
+                        Snackbar.LENGTH_SHORT
+                ).show();
+
+            } else {
+                Snackbar.make(
+                        binding.getRoot(),
+                        "❌ Location not found. Try a different name.",
+                        Snackbar.LENGTH_SHORT
+                ).show();
+            }
+
+        } catch (IOException e) {
+            Snackbar.make(
+                    binding.getRoot(),
+                    "❌ Search failed. Check internet connection.",
+                    Snackbar.LENGTH_SHORT
+            ).show();
+        }
+    }
+
+// ─────────────────────────────────────────────────────────
+// My Location (GPS)
+// ─────────────────────────────────────────────────────────
+
+    private void goToMyLocation() {
+
+        // Check if location permission is granted
+        if (ActivityCompat.checkSelfPermission(this,
+                Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+
+            // Ask for permission
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                    LOCATION_PERMISSION_REQUEST);
+            return;
+        }
+
+        // Enable blue dot on map
+        googleMap.setMyLocationEnabled(true);
+
+        // Get last known location and move camera there
+        fusedLocationClient.getLastLocation().addOnSuccessListener(location -> {
+            if (location != null) {
+                LatLng userLatLng = new LatLng(location.getLatitude(), location.getLongitude());
+                googleMap.animateCamera(
+                        CameraUpdateFactory.newLatLngZoom(userLatLng, 15.0f)
+                );
+                Snackbar.make(binding.getRoot(),
+                        "📍 Moved to your location", Snackbar.LENGTH_SHORT).show();
+            } else {
+                Snackbar.make(binding.getRoot(),
+                        "⚠️ Could not get location. Move outside or check GPS.",
+                        Snackbar.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    // Handle permission result
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == LOCATION_PERMISSION_REQUEST) {
+            if (grantResults.length > 0
+                    && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                goToMyLocation();
+            } else {
+                Snackbar.make(binding.getRoot(),
+                        "Location permission denied. Search manually instead.",
+                        Snackbar.LENGTH_LONG).show();
+            }
+        }
+    }
+
+// ─────────────────────────────────────────────────────────
+// Hide Keyboard Helper
+// ─────────────────────────────────────────────────────────
+
+    private void hideKeyboard() {
+        InputMethodManager imm = (InputMethodManager)
+                getSystemService(Context.INPUT_METHOD_SERVICE);
+        if (imm != null && getCurrentFocus() != null) {
+            imm.hideSoftInputFromWindow(
+                    getCurrentFocus().getWindowToken(), 0);
+        }
+    }
+
 }
