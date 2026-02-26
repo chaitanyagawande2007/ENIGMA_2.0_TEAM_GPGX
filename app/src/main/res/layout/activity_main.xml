@@ -44,6 +44,73 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
 
+        <!-- Add this INSIDE the ConstraintLayout, below the map fragment -->
+
+        <!-- Search Bar -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/search_card"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="8dp"
+            app:cardBackgroundColor="@color/card_bg"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_margin="12dp"
+            android:layout_marginTop="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="8dp">
+
+                <!-- Search Icon -->
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@android:drawable/ic_menu_search"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="8dp" />
+
+                <!-- Search Input -->
+                <EditText
+                    android:id="@+id/search_input"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:hint="Search your farm location..."
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_muted"
+                    android:textSize="14sp"
+                    android:background="@android:color/transparent"
+                    android:imeOptions="actionSearch"
+                    android:inputType="text"
+                    android:maxLines="1"
+                    android:paddingVertical="8dp" />
+
+                <!-- Clear Button -->
+                <ImageView
+                    android:id="@+id/search_clear"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@android:drawable/ic_menu_close_clear_cancel"
+                    android:layout_marginEnd="8dp"
+                    android:visibility="gone" />
+
+                <!-- My Location Button -->
+                <ImageView
+                    android:id="@+id/btn_my_location"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@android:drawable/ic_menu_mylocation"
+                    android:layout_marginEnd="8dp" />
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
         <!-- ── Prototype label (top overlay) ─────────────────── -->
         <TextView
             android:id="@+id/prototype_label"
@@ -69,7 +136,7 @@
             app:cardBackgroundColor="@color/card_bg"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            android:layout_margin="16dp"
+            android:layout_margin="15dp"
             android:layout_marginBottom="100dp">
 
             <LinearLayout
@@ -168,16 +235,13 @@
         android:id="@+id/fab_stress_vision"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Enable Stress Vision"
+        android:text="View Stress"
         android:textColor="@color/bg_dark"
         android:contentDescription="Enable Stress Vision"
         app:icon="@drawable/ic_eye"
         app:iconTint="@color/bg_dark"
         app:backgroundTint="@color/green_accent"
-        app:elevation="8dp"
-        app:layout_anchor="@id/app_bar_layout"
-        app:layout_anchorGravity="bottom|end"
         android:layout_gravity="bottom|end"
-        android:layout_margin="20dp" />
-
+        android:layout_marginEnd="5dp"
+        android:layout_marginBottom="40dp"/>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

@@ -90,7 +90,7 @@ public class ZoneDetailActivity extends AppCompatActivity {
 
         // Source label
         binding.sourceLabel.setText("Data source: Simulated hyperspectral + thermal sensors\n" +
-            "Model: Rule-based classifier (no AI/ML)");
+            "Model: Rule-based classifier");
     }
 
     /**
