@@ -27,6 +27,7 @@ public class SplashActivity extends AppCompatActivity {
     private static final int SPLASH_DURATION_MS = 2500;
     private ActivitySplashBinding binding;
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

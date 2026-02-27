@@ -1,14 +1,14 @@
 package com.orbital.stressvision;
 
+import android.graphics.Color;
+
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Polygon;
 import com.google.android.gms.maps.model.PolygonOptions;
-
-import android.content.Context;
-import org.json.JSONArray;
-import org.json.JSONObject;
-import java.io.InputStream;
+import com.orbital.stressvision.ai.FeatureExtractor;
+import com.orbital.stressvision.ai.PredictionResult;
+import com.orbital.stressvision.ai.StressVisionModel;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -17,221 +17,119 @@ import java.util.List;
 /**
  * MapUtils.java
  * ─────────────────────────────────────────────────────────────
- * Handles all map-related operations:
- *   • Provides sample agricultural zone data (simulated)
- *   • Draws semi-transparent stress polygons on the map
- *   • Clears existing overlays
- *
- * Sample field location: Farmland near Nagpur, Maharashtra, India
- * (Coordinates are real farm-like areas for demo purposes)
+ * Map drawing helpers. Updated to use AI PredictionResult
+ * for polygon fill colors (4-class: healthy/water/nutrient/combined).
  * ─────────────────────────────────────────────────────────────
  */
 public class MapUtils {
 
-    // Stroke width for polygon borders
     private static final float STROKE_WIDTH = 3.0f;
 
-    /**
-     * Creates and returns the list of predefined crop zones with
-     * simulated NDVI and temperature values.
-     *
-     * Zone A → Healthy (NDVI: 0.72, Temp: 28°C)
-     * Zone B → Moderate Stress (NDVI: 0.48, Temp: 31°C)
-     * Zone C → Severe Stress (NDVI: 0.31, Temp: 38°C)
-     * Zone D → Healthy (NDVI: 0.65, Temp: 27°C)
-     * Zone E → Moderate Stress (NDVI: 0.52, Temp: 33°C)
-     */
+    /** Returns the 5 predefined sample farm zones near Nagpur */
     public static List<StressZone> getSampleZones() {
         List<StressZone> zones = new ArrayList<>();
 
-        // ── Zone A: HEALTHY ───────────────────────────────────
-        // Large northern field — good irrigation, dense canopy
-        zones.add(new StressZone(
-            "ZONE_A",
-            "Field Block A – North",
-            Arrays.asList(
-                new LatLng(21.1520, 79.0850),
-                new LatLng(21.1520, 79.0920),
-                new LatLng(21.1460, 79.0920),
-                new LatLng(21.1460, 79.0850)
-            ),
-            0.72,   // NDVI: High — healthy dense crop
-            28.0,   // Temperature: Optimal
-            new LatLng(21.1490, 79.0885)
-        ));
+        zones.add(new StressZone("ZONE_A","Field Block A – North",
+                Arrays.asList(new LatLng(21.1520,79.0850),new LatLng(21.1520,79.0920),
+                        new LatLng(21.1460,79.0920),new LatLng(21.1460,79.0850)),
+                0.72, 28.0, new LatLng(21.1490,79.0885)));
 
-        // ── Zone B: MODERATE STRESS ───────────────────────────
-        // Eastern field — irrigation missed last cycle
-        zones.add(new StressZone(
-            "ZONE_B",
-            "Field Block B – East",
-            Arrays.asList(
-                new LatLng(21.1520, 79.0930),
-                new LatLng(21.1520, 79.0995),
-                new LatLng(21.1465, 79.0995),
-                new LatLng(21.1465, 79.0930)
-            ),
-            0.48,   // NDVI: Moderate — early stress signs
-            31.0,   // Temperature: Slightly elevated
-            new LatLng(21.1492, 79.0962)
-        ));
+        zones.add(new StressZone("ZONE_B","Field Block B – East",
+                Arrays.asList(new LatLng(21.1520,79.0930),new LatLng(21.1520,79.0995),
+                        new LatLng(21.1465,79.0995),new LatLng(21.1465,79.0930)),
+                0.48, 31.0, new LatLng(21.1492,79.0962)));
 
-        // ── Zone C: SEVERE STRESS ─────────────────────────────
-        // Southern field — drought + heat combination
-        zones.add(new StressZone(
-            "ZONE_C",
-            "Field Block C – South",
-            Arrays.asList(
-                new LatLng(21.1455, 79.0850),
-                new LatLng(21.1455, 79.0940),
-                new LatLng(21.1390, 79.0940),
-                new LatLng(21.1390, 79.0850)
-            ),
-            0.31,   // NDVI: Low — critical stress
-            38.5,   // Temperature: High — severe heat stress
-            new LatLng(21.1422, 79.0895)
-        ));
+        zones.add(new StressZone("ZONE_C","Field Block C – South",
+                Arrays.asList(new LatLng(21.1455,79.0850),new LatLng(21.1455,79.0940),
+                        new LatLng(21.1390,79.0940),new LatLng(21.1390,79.0850)),
+                0.22, 38.5, new LatLng(21.1422,79.0895)));
 
-        // ── Zone D: HEALTHY ───────────────────────────────────
-        // Western plot — well managed, drip irrigation active
-        zones.add(new StressZone(
-            "ZONE_D",
-            "Field Block D – West",
-            Arrays.asList(
-                new LatLng(21.1510, 79.0790),
-                new LatLng(21.1510, 79.0845),
-                new LatLng(21.1450, 79.0845),
-                new LatLng(21.1450, 79.0790)
-            ),
-            0.65,   // NDVI: Good — dense healthy vegetation
-            27.0,   // Temperature: Cool
-            new LatLng(21.1480, 79.0817)
-        ));
+        zones.add(new StressZone("ZONE_D","Field Block D – West",
+                Arrays.asList(new LatLng(21.1510,79.0790),new LatLng(21.1510,79.0845),
+                        new LatLng(21.1450,79.0845),new LatLng(21.1450,79.0790)),
+                0.65, 27.0, new LatLng(21.1480,79.0817)));
 
-        // ── Zone E: MODERATE STRESS ───────────────────────────
-        // Central strip — irregular watering pattern
-        zones.add(new StressZone(
-            "ZONE_E",
-            "Field Block E – Central",
-            Arrays.asList(
-                new LatLng(21.1455, 79.0945),
-                new LatLng(21.1455, 79.0995),
-                new LatLng(21.1395, 79.0995),
-                new LatLng(21.1395, 79.0945)
-            ),
-            0.52,   // NDVI: Mid-range — moderate stress
-            33.0,   // Temperature: Warm
-            new LatLng(21.1425, 79.0970)
-        ));
+        zones.add(new StressZone("ZONE_E","Field Block E – Central",
+                Arrays.asList(new LatLng(21.1455,79.0945),new LatLng(21.1455,79.0995),
+                        new LatLng(21.1395,79.0995),new LatLng(21.1395,79.0945)),
+                0.40, 36.0, new LatLng(21.1425,79.0970)));
 
         return zones;
     }
 
     /**
-     * Draws all stress zone polygons on the provided GoogleMap.
-     * Each polygon is colored based on the rule-based classification.
-     *
-     * @param googleMap  The GoogleMap instance to draw on
-     * @param zones      List of StressZone objects to render
-     * @return           List of drawn Polygon objects (for later removal)
+     * Draw stress polygons using AI prediction colours.
+     * If zone.getAiResult() is null, falls back to rule-based colour.
      */
     public static List<Polygon> drawStressOverlay(GoogleMap googleMap, List<StressZone> zones) {
-        List<Polygon> drawnPolygons = new ArrayList<>();
+        List<Polygon> drawn = new ArrayList<>();
 
         for (StressZone zone : zones) {
-            // Get stress classification for this zone
-            StressResult result = StressCalculator.classify(zone.getNdvi(), zone.getTemperature());
+            int fillColor, strokeColor;
 
-            // Build polygon options with stress color
-            PolygonOptions options = new PolygonOptions()
-                .addAll(zone.getPolygon())
-                .fillColor(result.getFillColor())
-                .strokeColor(result.getStrokeColor())
-                .strokeWidth(STROKE_WIDTH)
-                .clickable(true);
+            if (zone.hasAiResult()) {
+                PredictionResult ai = zone.getAiResult();
+                fillColor   = ai.getFillColor();
+                strokeColor = Color.parseColor(ai.getColor());
+            } else {
+                // Rule-based fallback
+                StressResult r = StressCalculator.classify(zone.getNdvi(), zone.getTemperature());
+                fillColor   = r.getFillColor();
+                strokeColor = r.getStrokeColor();
+            }
 
-            // Add polygon to map
-            Polygon polygon = googleMap.addPolygon(options);
+            PolygonOptions opts = new PolygonOptions()
+                    .addAll(zone.getPolygon())
+                    .fillColor(fillColor)
+                    .strokeColor(strokeColor)
+                    .strokeWidth(STROKE_WIDTH)
+                    .clickable(true);
 
-            // Tag the polygon with zone ID so we can identify it on click
-            polygon.setTag(zone.getId());
-
-            drawnPolygons.add(polygon);
+            Polygon poly = googleMap.addPolygon(opts);
+            poly.setTag(zone.getId());
+            drawn.add(poly);
         }
-
-        return drawnPolygons;
+        return drawn;
     }
 
-    /**
-     * Removes all stress overlay polygons from the map.
-     *
-     * @param polygons List of Polygon objects to remove
-     */
     public static void clearStressOverlay(List<Polygon> polygons) {
         if (polygons == null) return;
-        for (Polygon polygon : polygons) {
-            polygon.remove();
-        }
+        for (Polygon p : polygons) p.remove();
         polygons.clear();
     }
 
-    /**
-     * Find a StressZone by its ID.
-     *
-     * @param zones  List of all zones
-     * @param zoneId ID to search for
-     * @return       Matching StressZone or null
-     */
-    public static StressZone findZoneById(List<StressZone> zones, String zoneId) {
-        for (StressZone zone : zones) {
-            if (zone.getId().equals(zoneId)) {
-                return zone;
-            }
-        }
+    public static StressZone findZoneById(List<StressZone> zones, String id) {
+        for (StressZone z : zones)
+            if (z.getId().equals(id)) return z;
         return null;
     }
 
-    public static List<Polygon> drawFromGeoJson(GoogleMap map, Context context) {
-
-        List<Polygon> polygons = new ArrayList<>();
-
-        try {
-            InputStream is = context.getAssets().open("ndvi_zones.geojson");
-            byte[] buffer = new byte[is.available()];
-            is.read(buffer);
-            is.close();
-
-            String json = new String(buffer);
-            JSONObject obj = new JSONObject(json);
-            JSONArray features = obj.getJSONArray("features");
-
-            for(int i=0;i<features.length();i++){
-
-                JSONArray coords = features.getJSONObject(i)
-                        .getJSONObject("geometry")
-                        .getJSONArray("coordinates")
-                        .getJSONArray(0);
-
-                PolygonOptions options = new PolygonOptions();
-
-                for(int j=0;j<coords.length();j++){
-                    JSONArray point = coords.getJSONArray(j);
-                    options.add(new LatLng(point.getDouble(1), point.getDouble(0)));
-                }
-
-                // Temporary green color (next step me dynamic karenge)
-                options.fillColor(0x5534C55E);
-                options.strokeColor(0xFF15803D);
-                options.strokeWidth(3f);
-                options.clickable(true);
-
-                polygons.add(map.addPolygon(options));
+    public static List<StressZone> generateZonesAroundPoint(LatLng center) {
+        // Dynamic 2×2 grid around tapped point
+        double step = 0.004;
+        List<StressZone> zones = new ArrayList<>();
+        int idx = 0;
+        for (int r = 0; r < 2; r++) {
+            for (int c = 0; c < 2; c++) {
+                double lat0 = center.latitude  - step + r * step;
+                double lat1 = lat0 + step;
+                double lon0 = center.longitude - step + c * step;
+                double lon1 = lon0 + step;
+                double zoneLat = (lat0 + lat1) / 2;
+                double zoneLon = (lon0 + lon1) / 2;
+                // NDVI varies by position for visual variety
+                double ndvi = 0.35 + idx * 0.15 + (r * 0.05);
+                zones.add(new StressZone(
+                        "DYN_" + idx,
+                        "Zone " + (char)('A' + idx),
+                        Arrays.asList(new LatLng(lat0,lon0), new LatLng(lat0,lon1),
+                                new LatLng(lat1,lon1), new LatLng(lat1,lon0)),
+                        Math.min(ndvi, 0.80), 30 + idx * 2,
+                        new LatLng(zoneLat, zoneLon)
+                ));
+                idx++;
             }
-
-        } catch (Exception e){
-            e.printStackTrace();
         }
-
-        return polygons;
+        return zones;
     }
 }

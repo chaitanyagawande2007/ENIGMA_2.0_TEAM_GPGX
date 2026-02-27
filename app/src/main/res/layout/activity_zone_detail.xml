@@ -1,45 +1,50 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<!--
+    activity_zone_detail.xml
+    Complete AI prediction detail screen.
+    Shows: stress badge · damage probability · 4-class bars ·
+           pre-visual alert · NDVI/NDMI/RE-NDVI · recommendation
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/bg_dark">
+    android:orientation="vertical"
+    android:background="@color/black">
 
-    <com.google.android.material.appbar.AppBarLayout
+    <!-- Toolbar -->
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-        <androidx.appcompat.widget.Toolbar
-            android:id="@+id/toolbar"
-            android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            android:background="@color/toolbar_bg"
-            app:titleTextColor="@color/green_accent"
-            app:navigationIconTint="@color/green_accent" />
-    </com.google.android.material.appbar.AppBarLayout>
+        android:layout_height="?attr/actionBarSize"
+        android:background="@color/black"
+        app:titleTextColor="#FFFFFF"/>
 
+    <!-- Scrollable content -->
     <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:padding="14dp">
 
-            <!-- Zone name -->
+            <!-- ══ Zone header ════════════════════════════════ -->
             <TextView
                 android:id="@+id/zone_name_text"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textColor="@color/text_primary"
-                android:textSize="20sp"
-                android:textStyle="bold"
-                android:layout_marginBottom="12dp" />
+                android:text="Zone"
+                android:textSize="14sp"
+                android:textColor="#909DA8"
+                android:gravity="center"
+                android:layout_marginBottom="10dp"/>
 
-            <!-- Stress status card -->
+            <!-- ══ Stress badge card ══════════════════════════ -->
             <androidx.cardview.widget.CardView
                 android:id="@+id/stress_status_card"
                 android:layout_width="match_parent"
@@ -51,53 +56,6 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:padding="16dp"
-                    android:gravity="center_vertical">
-
-                    <TextView
-                        android:id="@+id/stress_emoji_text"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:textSize="36sp"
-                        android:layout_marginEnd="14dp" />
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:id="@+id/stress_label_text"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:textSize="18sp"
-                            android:textStyle="bold"
-                            android:layout_marginBottom="4dp" />
-
-                        <TextView
-                            android:id="@+id/stress_desc_text"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:textSize="12sp"
-                            android:lineSpacingExtra="2dp" />
-                    </LinearLayout>
-                </LinearLayout>
-            </androidx.cardview.widget.CardView>
-
-            <!-- NDVI card -->
-            <androidx.cardview.widget.CardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="3dp"
-                app:cardBackgroundColor="@color/card_bg"
-                android:layout_marginBottom="10dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
                     android:orientation="vertical"
                     android:padding="16dp">
 
@@ -105,155 +63,337 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:gravity="center_vertical"
-                        android:layout_marginBottom="6dp">
+                        android:gravity="center_vertical">
 
                         <TextView
+                            android:id="@+id/stress_emoji_text"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="🟢"
+                            android:textSize="32sp"
+                            android:layout_marginEnd="12dp"/>
+
+                        <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="📊 NDVI"
-                            android:textColor="@color/text_muted"
-                            android:textSize="12sp"
-                            android:fontFamily="monospace"
-                            android:letterSpacing="0.08" />
+                            android:orientation="vertical">
 
-                        <TextView
-                            android:id="@+id/ndvi_value_text"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:textColor="@color/green_accent"
-                            android:textSize="20sp"
-                            android:textStyle="bold"
-                            android:fontFamily="monospace" />
+                            <TextView
+                                android:id="@+id/stress_label_text"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Healthy"
+                                android:textSize="20sp"
+                                android:textStyle="bold"/>
+
+                            <TextView
+                                android:id="@+id/stress_desc_text"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="No stress indicators detected."
+                                android:textSize="12sp"
+                                android:lineSpacingExtra="2dp"/>
+                        </LinearLayout>
                     </LinearLayout>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- ══ AI: Damage probability ═════════════════════ -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="3dp"
+                android:layout_marginBottom="12dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="🧠  AI CROP DAMAGE PROBABILITY"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:textColor="#909DA8"
+                        android:letterSpacing="0.05"
+                        android:layout_marginBottom="10dp"/>
+
+                    <TextView
+                        android:id="@+id/tv_damage_pct"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Crop Damage Probability: 0%"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="#E7E7E7"
+                        android:layout_marginBottom="8dp"/>
 
                     <ProgressBar
-                        android:id="@+id/ndvi_bar"
+                        android:id="@+id/ai_damage_prob_bar"
                         style="?android:attr/progressBarStyleHorizontal"
                         android:layout_width="match_parent"
-                        android:layout_height="8dp"
+                        android:layout_height="14dp"
                         android:max="100"
-                        android:progressTint="@color/green_accent"
-                        android:progressBackgroundTint="@color/border_color"
-                        android:layout_marginBottom="6dp" />
+                        android:progress="0"
+                        android:progressBackgroundTint="#E0E0E0"
+                        android:layout_marginBottom="14dp"/>
 
+                    <!-- 4 class probability bars -->
                     <TextView
-                        android:id="@+id/ndvi_interpretation"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:textColor="@color/text_muted"
-                        android:textSize="12sp" />
-                </LinearLayout>
-            </androidx.cardview.widget.CardView>
-
-            <!-- Temperature card -->
-            <androidx.cardview.widget.CardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="3dp"
-                app:cardBackgroundColor="@color/card_bg"
-                android:layout_marginBottom="10dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
-
-                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical"
-                        android:layout_marginBottom="6dp">
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="🌡️ TEMPERATURE"
-                            android:textColor="@color/text_muted"
-                            android:textSize="12sp"
-                            android:fontFamily="monospace"
-                            android:letterSpacing="0.08" />
-
-                        <TextView
-                            android:id="@+id/temperature_value_text"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:textColor="@color/orange_warning"
-                            android:textSize="20sp"
-                            android:textStyle="bold"
-                            android:fontFamily="monospace" />
-                    </LinearLayout>
-
-                    <ProgressBar
-                        android:id="@+id/temp_bar"
-                        style="?android:attr/progressBarStyleHorizontal"
-                        android:layout_width="match_parent"
-                        android:layout_height="8dp"
-                        android:max="50"
-                        android:progressTint="@color/orange_warning"
-                        android:progressBackgroundTint="@color/border_color"
-                        android:layout_marginBottom="6dp" />
-
-                    <TextView
-                        android:id="@+id/temp_interpretation"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:textColor="@color/text_muted"
-                        android:textSize="12sp" />
-                </LinearLayout>
-            </androidx.cardview.widget.CardView>
-
-            <!-- Recommendation card -->
-            <androidx.cardview.widget.CardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="3dp"
-                app:cardBackgroundColor="@color/card_bg"
-                android:layout_marginBottom="10dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="RECOMMENDATION"
-                        android:textColor="@color/text_muted"
+                        android:text="CLASS PROBABILITIES"
                         android:textSize="10sp"
-                        android:fontFamily="monospace"
-                        android:letterSpacing="0.12"
-                        android:layout_marginBottom="8dp" />
+                        android:textStyle="bold"
+                        android:textColor="#9E9E9E"
+                        android:letterSpacing="0.08"
+                        android:layout_marginBottom="8dp"/>
+
+                    <!-- Healthy -->
+                    <TextView android:id="@+id/tv_prob_healthy"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:fontFamily="monospace" android:textSize="12sp" android:textColor="#40C749"
+                        android:layout_marginBottom="3dp"/>
+                    <ProgressBar android:id="@+id/bar_prob_healthy"
+                        style="?android:attr/progressBarStyleHorizontal"
+                        android:layout_width="match_parent" android:layout_height="6dp"
+                        android:max="100" android:progress="0"
+                        android:progressTint="#4CAF50" android:progressBackgroundTint="#E8F5E9"
+                        android:layout_marginBottom="8dp"/>
+
+                    <!-- Water Stress -->
+                    <TextView android:id="@+id/tv_prob_water"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:fontFamily="monospace" android:textSize="12sp" android:textColor="#E65100"
+                        android:layout_marginBottom="3dp"/>
+                    <ProgressBar android:id="@+id/bar_prob_water"
+                        style="?android:attr/progressBarStyleHorizontal"
+                        android:layout_width="match_parent" android:layout_height="6dp"
+                        android:max="100" android:progress="0"
+                        android:progressTint="#FF6D00" android:progressBackgroundTint="#FFF3E0"
+                        android:layout_marginBottom="8dp"/>
+
+                    <!-- Nutrient Deficiency -->
+                    <TextView android:id="@+id/tv_prob_nutrient"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:fontFamily="monospace" android:textSize="12sp" android:textColor="#AE39E0"
+                        android:layout_marginBottom="3dp"/>
+                    <ProgressBar android:id="@+id/bar_prob_nutrient"
+                        style="?android:attr/progressBarStyleHorizontal"
+                        android:layout_width="match_parent" android:layout_height="6dp"
+                        android:max="100" android:progress="0"
+                        android:progressTint="#9C27B0" android:progressBackgroundTint="#F3E5F5"
+                        android:layout_marginBottom="8dp"/>
+
+                    <!-- Combined Stress -->
+                    <TextView android:id="@+id/tv_prob_combined"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:fontFamily="monospace" android:textSize="12sp" android:textColor="#DE1E1E"
+                        android:layout_marginBottom="3dp"/>
+                    <ProgressBar android:id="@+id/bar_prob_combined"
+                        style="?android:attr/progressBarStyleHorizontal"
+                        android:layout_width="match_parent" android:layout_height="6dp"
+                        android:max="100" android:progress="0"
+                        android:progressTint="#D32F2F" android:progressBackgroundTint="#FFEBEE"
+                        android:layout_marginBottom="2dp"/>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- ══ AI: Pre-Visual Alert ════════════════════════ -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/pre_visual_card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="3dp"
+                app:cardBackgroundColor="#FFF8E1"
+                android:layout_marginBottom="12dp"
+                android:visibility="gone">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="14dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="⚠️  PRE-VISUAL STRESS DETECTION"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:textColor="#E65100"
+                        android:letterSpacing="0.05"
+                        android:layout_marginBottom="8dp"/>
+
+                    <TextView
+                        android:id="@+id/tv_pre_visual_detail"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textSize="12sp"
+                        android:textColor="#5D4037"
+                        android:lineSpacingExtra="3dp"/>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- ══ Spectral Indices ════════════════════════════ -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="3dp"
+                android:layout_marginBottom="12dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="📡  SPECTRAL INDICES (Sentinel-2)"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:textColor="#909DA8"
+                        android:letterSpacing="0.05"
+                        android:layout_marginBottom="12dp"/>
+
+                    <!-- NDVI row -->
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="horizontal" android:gravity="center_vertical"
+                        android:layout_marginBottom="4dp">
+                        <TextView android:layout_width="100dp" android:layout_height="wrap_content"
+                            android:text="NDVI" android:textSize="12sp"
+                            android:textColor="#909DA8" android:textStyle="bold"/>
+                        <TextView android:id="@+id/ndvi_value_text"
+                            android:layout_width="70dp" android:layout_height="wrap_content"
+                            android:text="0.72" android:textSize="18sp"
+                            android:textStyle="bold" android:textColor="#2C9432"/>
+                        <ProgressBar android:id="@+id/ndvi_bar"
+                            style="?android:attr/progressBarStyleHorizontal"
+                            android:layout_width="0dp" android:layout_height="8dp"
+                            android:layout_weight="1" android:max="100"
+                            android:progressTint="#4CAF50" android:progressBackgroundTint="#E8F5E9"/>
+                    </LinearLayout>
+                    <TextView android:id="@+id/ndvi_interpretation"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:text="Dense healthy vegetation"
+                        android:textSize="11sp" android:textColor="#78909C"
+                        android:layout_marginBottom="12dp"/>
+
+                    <!-- NDMI row -->
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="horizontal" android:gravity="center_vertical"
+                        android:layout_marginBottom="4dp">
+                        <TextView android:layout_width="100dp" android:layout_height="wrap_content"
+                            android:text="NDMI" android:textSize="12sp"
+                            android:textColor="#909DA8" android:textStyle="bold"/>
+                        <TextView android:id="@+id/tv_ndmi_value"
+                            android:layout_width="70dp" android:layout_height="wrap_content"
+                            android:text="0.31" android:textSize="18sp"
+                            android:textStyle="bold" android:textColor="#2C71BF"/>
+                    </LinearLayout>
+                    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:text="Moisture Index (NIR-SWIR) / (NIR+SWIR)"
+                        android:textSize="11sp" android:textColor="#78909C"
+                        android:layout_marginBottom="12dp"/>
+
+                    <!-- Red-Edge NDVI row -->
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="horizontal" android:gravity="center_vertical"
+                        android:layout_marginBottom="4dp">
+                        <TextView android:layout_width="100dp" android:layout_height="wrap_content"
+                            android:text="RE-NDVI" android:textSize="12sp"
+                            android:textColor="#909DA8" android:textStyle="bold"/>
+                        <TextView android:id="@+id/tv_re_ndvi_value"
+                            android:layout_width="70dp" android:layout_height="wrap_content"
+                            android:text="0.79" android:textSize="18sp"
+                            android:textStyle="bold" android:textColor="#A84ACE"/>
+                    </LinearLayout>
+                    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:text="Red-Edge NDVI (705 nm) — pre-visual stress indicator"
+                        android:textSize="11sp" android:textColor="#78909C"
+                        android:layout_marginBottom="12dp"/>
+
+                    <!-- Temperature row -->
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="horizontal" android:gravity="center_vertical"
+                        android:layout_marginBottom="4dp">
+                        <TextView android:layout_width="100dp" android:layout_height="wrap_content"
+                            android:text="Canopy °C" android:textSize="12sp"
+                            android:textColor="#909DA8" android:textStyle="bold"/>
+                        <TextView android:id="@+id/temperature_value_text"
+                            android:layout_width="70dp" android:layout_height="wrap_content"
+                            android:text="28.0°C" android:textSize="18sp"
+                            android:textStyle="bold" android:textColor="#E65100"/>
+                        <ProgressBar android:id="@+id/temp_bar"
+                            style="?android:attr/progressBarStyleHorizontal"
+                            android:layout_width="0dp" android:layout_height="8dp"
+                            android:layout_weight="1" android:max="50"
+                            android:progressTint="#FF6D00" android:progressBackgroundTint="#FFF3E0"/>
+                    </LinearLayout>
+                    <TextView android:id="@+id/temp_interpretation"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:text="Optimal canopy temperature"
+                        android:textSize="11sp" android:textColor="#78909C"/>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- ══ Recommendation ═════════════════════════════ -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="3dp"
+                app:cardBackgroundColor="#E8F5E9"
+                android:layout_marginBottom="12dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="🌾  AGRONOMIC RECOMMENDATION"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:textColor="#1B5E20"
+                        android:letterSpacing="0.05"
+                        android:layout_marginBottom="8dp"/>
 
                     <TextView
                         android:id="@+id/recommendation_text"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:textColor="@color/text_primary"
+                        android:text="No action needed."
                         android:textSize="13sp"
-                        android:lineSpacingExtra="4dp" />
+                        android:textColor="#1B5E20"
+                        android:lineSpacingExtra="4dp"/>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
-            <!-- Source label -->
+            <!-- ══ Source label ═══════════════════════════════ -->
             <TextView
                 android:id="@+id/source_label"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textColor="@color/text_muted"
+                android:text="AI Model: MLP · Sentinel-2 L2A · ESA/EU"
                 android:textSize="10sp"
-                android:fontFamily="monospace"
+                android:textColor="#90A4AE"
+                android:gravity="center"
                 android:lineSpacingExtra="2dp"
-                android:layout_marginTop="4dp" />
+                android:layout_marginBottom="16dp"/>
 
         </LinearLayout>
     </ScrollView>
-</androidx.coordinatorlayout.widget.CoordinatorLayout>
+</LinearLayout>
