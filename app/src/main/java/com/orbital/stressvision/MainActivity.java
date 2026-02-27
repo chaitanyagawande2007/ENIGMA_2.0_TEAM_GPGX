@@ -9,6 +9,15 @@ import android.view.animation.AlphaAnimation;
 import android.view.animation.Animation;
 
 import androidx.appcompat.app.AppCompatActivity;
+import android.Manifest;
+import android.content.pm.PackageManager;
+import androidx.core.app.ActivityCompat;
+import androidx.annotation.NonNull;
+
+import android.location.Geocoder;
+import android.location.Address;
+import android.view.inputmethod.EditorInfo;
+import java.util.List;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -71,6 +80,23 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
+        binding.searchInput.setOnEditorActionListener((v, actionId, event) -> {
+
+            if (actionId == EditorInfo.IME_ACTION_SEARCH ||
+                    actionId == EditorInfo.IME_ACTION_DONE) {
+
+                String location = binding.searchInput.getText().toString().trim();
+
+                if (location.isEmpty()) return true;
+
+                searchLocation(location);
+
+                return true;
+            }
+
+            return false;
+        });
+
         // Set up AppBar
         setSupportActionBar(binding.toolbar);
         if (getSupportActionBar() != null) {
@@ -105,11 +131,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         this.googleMap = map;
 
-        googleMap.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
+        googleMap.setMapType(GoogleMap.MAP_TYPE_HYBRID);
         googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(FARM_CENTER, DEFAULT_ZOOM));
 
         googleMap.getUiSettings().setMapToolbarEnabled(false);
-        googleMap.getUiSettings().setMyLocationButtonEnabled(false);
+        googleMap.getUiSettings().setMyLocationButtonEnabled(true);
+
+        enableUserLocation();
 
         // 🔥 REAL CLICK ANYWHERE NDVI
         googleMap.setOnMapClickListener(latLng -> {
@@ -120,6 +148,22 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
             fetchNdviFromServer(latLng.latitude, latLng.longitude);
         });
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (requestCode == 1001) {
+            if (grantResults.length > 0
+                    && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+                enableUserLocation();
+            }
+        }
     }
 
     private void fetchNdviFromServer(double lat, double lng) {
@@ -157,8 +201,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 double ndvi = json.getDouble("ndvi");
 
                 runOnUiThread(() -> {
-                    showNdviPopup(ndvi);
                     drawStressCircle(lat, lng, ndvi);
+                    openDetailScreen(lat, lng, ndvi);
                 });
 
             } catch (Exception e) {
@@ -199,6 +243,45 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         );
     }
 
+    private void openDetailScreen(double lat, double lng, double ndvi) {
+
+        String stressLabel;
+        String stressDesc;
+        String stressEmoji;
+
+        if (ndvi < 0.3) {
+            stressLabel = "Severe Stress";
+            stressDesc = "Low vegetation density detected.";
+            stressEmoji = "🔴";
+        } else if (ndvi < 0.5) {
+            stressLabel = "Moderate Stress";
+            stressDesc = "Vegetation health needs monitoring.";
+            stressEmoji = "🟡";
+        } else {
+            stressLabel = "Healthy";
+            stressDesc = "Vegetation density is strong.";
+            stressEmoji = "🟢";
+        }
+
+        Intent intent = new Intent(this, ZoneDetailActivity.class);
+
+        intent.putExtra(ZoneDetailActivity.EXTRA_ZONE_NAME,
+                "Lat: " + String.format("%.4f", lat) +
+                        "\nLng: " + String.format("%.4f", lng));
+
+        intent.putExtra(ZoneDetailActivity.EXTRA_NDVI, ndvi);
+
+        // Demo temperature (temporary)
+        double temperature = 30 + (Math.random() * 5);
+        intent.putExtra(ZoneDetailActivity.EXTRA_TEMPERATURE, temperature);
+
+        intent.putExtra(ZoneDetailActivity.EXTRA_STRESS_LABEL, stressLabel);
+        intent.putExtra(ZoneDetailActivity.EXTRA_STRESS_DESC, stressDesc);
+        intent.putExtra(ZoneDetailActivity.EXTRA_STRESS_EMOJI, stressEmoji);
+
+        startActivity(intent);
+    }
+
     private void showNdviPopup(double ndvi){
 
         String label;
@@ -227,6 +310,23 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 .setBackgroundTint(color)
                 .setTextColor(android.graphics.Color.WHITE)
                 .show();
+    }
+
+    private void enableUserLocation() {
+
+        if (googleMap == null) return;
+
+        if (ActivityCompat.checkSelfPermission(this,
+                Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                    1001);
+            return;
+        }
+
+        googleMap.setMyLocationEnabled(true);
     }
 
     // ─────────────────────────────────────────────────────────
@@ -310,6 +410,45 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         fadeIn.setDuration(500);
         fadeIn.setFillAfter(true);
         binding.legendCard.startAnimation(fadeIn);
+    }
+
+    private void searchLocation(String locationName) {
+
+        new Thread(() -> {
+
+            try {
+                Geocoder geocoder = new Geocoder(this);
+                List<Address> addresses =
+                        geocoder.getFromLocationName(locationName, 1);
+
+                if (addresses != null && !addresses.isEmpty()) {
+
+                    Address address = addresses.get(0);
+
+                    LatLng latLng = new LatLng(
+                            address.getLatitude(),
+                            address.getLongitude());
+
+                    runOnUiThread(() ->
+                            googleMap.animateCamera(
+                                    CameraUpdateFactory
+                                            .newLatLngZoom(latLng, 14)));
+
+                } else {
+                    runOnUiThread(() ->
+                            Snackbar.make(binding.getRoot(),
+                                    "Location not found",
+                                    Snackbar.LENGTH_SHORT).show());
+                }
+
+            } catch (Exception e) {
+                runOnUiThread(() ->
+                        Snackbar.make(binding.getRoot(),
+                                "Search failed",
+                                Snackbar.LENGTH_SHORT).show());
+            }
+
+        }).start();
     }
 
     private void hideLegendCard() {
